@@ -1,0 +1,791 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "UNIR S.A. - Sistema de Facturación";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIR S.A. - Sistema Servicios Públicos</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Fuente Google Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Librerías para exportación en PDF y Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+            :root {
+                --unir-blue: #0A51A1;
+                --unir-blue-hover: #073872;
+                --unir-blue-light: #EBF3FA;
+                --unir-bg: #F4F7F9;
+                --unir-text: #1E293B;
+                --water-color: #0284C7;
+                --energy-color: #D97706;
+                --gas-color: #EA580C;
+            }
+
+            /* Accesibilidad WCAG: Tipografía aumentada para personas mayores */
+            body {
+                background-color: var(--unir-bg);
+                font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                font-size: 1.125rem;
+                color: var(--unir-text);
+                line-height: 1.6;
+            }
+
+            .card-unir {
+                border: none;
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(10, 81, 161, 0.08);
+                background-color: #ffffff;
+            }
+
+            .title-main {
+                font-size: 2rem;
+                font-weight: 800;
+                color: var(--unir-blue);
+                letter-spacing: -0.02em;
+            }
+
+            /* Inputs y Controles Táctiles Accesibles (54px) */
+            .form-label {
+                font-size: 1.125rem;
+                font-weight: 700;
+                color: #0F172A;
+                margin-bottom: 6px;
+            }
+
+            .form-control, .form-select {
+                border-radius: 12px;
+                border: 2px solid #94A3B8;
+                min-height: 54px;
+                padding: 10px 16px;
+                font-size: 1.125rem;
+                font-weight: 600;
+                color: #0F172A;
+                background-color: #ffffff;
+                transition: all 0.2s ease;
+            }
+
+                .form-control:focus, .form-select:focus {
+                    border-color: var(--unir-blue);
+                    box-shadow: 0 0 0 4px rgba(10, 81, 161, 0.15);
+                    outline: none;
+                }
+
+            .counter-badge {
+                font-size: 0.95rem;
+                color: #475569;
+                font-weight: 700;
+            }
+
+            .field-help-text {
+                font-size: 0.85rem;
+                color: #64748B;
+                font-weight: 600;
+                margin-top: 4px;
+            }
+
+            /* Tarjetas Seleccionables de Servicio */
+            .service-card-group {
+                display: flex;
+                gap: 12px;
+            }
+
+            .service-card {
+                flex: 1;
+                border: 3px solid #CBD5E1;
+                border-radius: 14px;
+                padding: 14px 8px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background-color: #ffffff;
+                user-select: none;
+            }
+
+                .service-card:hover {
+                    border-color: var(--unir-blue);
+                    transform: translateY(-2px);
+                }
+
+                .service-card.selected[data-service="Agua"] {
+                    border-color: var(--water-color);
+                    background-color: #E0F2FE;
+                    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+                }
+
+                .service-card.selected[data-service="Energia"] {
+                    border-color: var(--energy-color);
+                    background-color: #FEF3C7;
+                    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+                }
+
+                .service-card.selected[data-service="Gas"] {
+                    border-color: var(--gas-color);
+                    background-color: #FFEDD5;
+                    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
+                }
+
+                .service-card .icon {
+                    font-size: 2.2rem;
+                    display: block;
+                    margin-bottom: 2px;
+                }
+
+                .service-card .title {
+                    font-weight: 800;
+                    font-size: 1.15rem;
+                    color: #0F172A;
+                    display: block;
+                }
+
+                .service-card .price {
+                    font-size: 0.95rem;
+                    font-weight: 700;
+                    color: #475569;
+                }
+
+            /* Botones de Alta Visibilidad */
+            .btn-main-action {
+                background-color: var(--unir-blue);
+                color: #ffffff;
+                font-weight: 800;
+                font-size: 1.15rem;
+                min-height: 54px;
+                border-radius: 12px;
+                border: none;
+                padding: 12px 24px;
+                box-shadow: 0 4px 12px rgba(10, 81, 161, 0.25);
+                transition: all 0.2s ease;
+            }
+
+                .btn-main-action:hover {
+                    background-color: var(--unir-blue-hover);
+                    color: #ffffff;
+                }
+
+            .btn-save-action {
+                background-color: #16A34A;
+                color: #ffffff;
+                font-weight: 800;
+                font-size: 1.15rem;
+                min-height: 54px;
+                border-radius: 12px;
+                border: none;
+                padding: 12px 22px;
+                box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+            }
+
+                .btn-save-action:hover {
+                    background-color: #15803D;
+                    color: #ffffff;
+                }
+
+            .btn-secondary-action {
+                font-size: 1.05rem;
+                font-weight: 700;
+                min-height: 54px;
+                border-radius: 12px;
+                padding: 10px 18px;
+                border: 2px solid var(--unir-blue);
+                color: var(--unir-blue);
+                background-color: #ffffff;
+            }
+
+                .btn-secondary-action:hover {
+                    background-color: var(--unir-blue-light);
+                    color: var(--unir-blue);
+                }
+
+            .factura-card {
+                background: #ffffff;
+                border-radius: 16px;
+                border: 2px solid #CBD5E1;
+                padding: 24px;
+                box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+            }
+
+            .table-custom {
+                font-size: 1.05rem;
+            }
+
+                .table-custom th {
+                    background-color: var(--unir-blue) !important;
+                    color: #ffffff !important;
+                    font-size: 1.1rem;
+                    padding: 12px;
+                }
+
+                .table-custom td {
+                    padding: 12px;
+                    vertical-align: middle;
+                }
+    </style>
+</head>
+<body>
+
+    <div class="container py-4" style="max-width: 1080px;">
+
+        <!-- 1. PANTALLA DE LOGIN CON LOGO OVALADO Y TARJETA -->
+        <div id="pantallaLogin" class="row justify-content-center py-5">
+            <div class="col-md-7 col-lg-6">
+                <div class="card card-unir p-4 p-md-5 text-center shadow-lg">
+
+                    <!-- LOGO VECTORIAL SVG UNIR SERVICIOS PÚBLICOS -->
+                    <div class="mb-4">
+                        <svg viewBox="0 0 200 210" style="max-height: 130px; width: auto;" aria-label="Logo UNIR Servicios Públicos">
+                            <g>
+                                <path d="M 100,5 C 35,5 5,30 5,75 C 5,120 35,145 100,145 C 165,145 195,120 195,75 C 195,30 165,5 100,5 Z M 100,132 C 48,132 20,110 20,75 C 20,40 48,18 100,18 C 152,18 180,40 180,75 C 180,110 152,132 100,132 Z" fill="#0A51A1" />
+                                <path d="M 35,40 C 35,100 60,122 100,122 C 140,122 165,100 165,40 L 140,40 C 140,88 125,102 100,102 C 75,102 60,88 60,40 Z" fill="#0A51A1" />
+                                <path d="M 60,30 C 42,60 38,72 38,82 C 38,96 48,106 60,106 C 72,106 82,96 82,82 C 82,72 78,60 60,30 Z" fill="#0284C7" />
+                                <path d="M 118,20 L 88,68 L 108,68 L 94,110 L 132,54 L 110,54 Z" fill="#F59E0B" />
+                                <path d="M 140,35 C 120,62 125,78 140,100 C 155,78 160,62 140,35 Z" fill="#EA580C" />
+                            </g>
+                            <text x="100" y="172" font-family="'Inter', sans-serif" font-weight="900" font-size="34" fill="#0A51A1" text-anchor="middle" letter-spacing="-1">UNIR</text>
+                            <line x1="10" y1="182" x2="190" y2="182" stroke="#64748B" stroke-width="1" />
+                            <text x="100" y="198" font-family="'Inter', sans-serif" font-weight="700" font-size="14" fill="#334155" text-anchor="middle" letter-spacing="0.5">Servicios Públicos</text>
+                        </svg>
+                    </div>
+
+                    <h2 class="title-main text-dark mb-2">Inicio de Sesión</h2>
+                    <p class="text-secondary fw-semibold mb-4" style="font-size: 1.15rem; line-height: 1.5;">
+                        Por favor, ingrese sus credenciales para consultar sus facturas.
+                    </p>
+
+                    <form onsubmit="iniciarSesion(event)">
+                        <div class="mb-4 text-start">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label m-0">Usuario:</label>
+                                <span id="cntLoginUsuario" class="counter-badge">0/20</span>
+                            </div>
+                            <input type="text" id="loginUsuario" class="form-control" value="admin" maxlength="20" placeholder="Ej. usuario123" required oninput="actualizarContador(this, 'cntLoginUsuario')">
+                        </div>
+
+                        <div class="mb-4 text-start">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label m-0">Contraseña:</label>
+                                <span id="cntLoginPass" class="counter-badge">0/20</span>
+                            </div>
+                            <input type="password" id="loginPass" class="form-control" value="123456" maxlength="20" placeholder="••••••••" required oninput="actualizarContador(this, 'cntLoginPass')">
+                        </div>
+
+                        <button type="submit" class="btn btn-main-action w-100 shadow">
+                            INGRESAR AL SISTEMA →
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. PANEL PRINCIPAL Y CALCULADORA -->
+        <div id="pantallaCalculadora" class="card card-unir p-4 p-md-5 d-none">
+
+            <!-- Encabezado Corporativo Con Logo Tamaño Controlado (110px) -->
+            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <svg viewBox="0 0 200 210" style="max-height: 52px; width: auto;" aria-label="Logo UNIR S.A.">
+                        <g transform="scale(0.8)">
+                            <path d="M 100,5 C 35,5 5,30 5,75 C 5,120 35,145 100,145 C 165,145 195,120 195,75 C 195,30 165,5 100,5 Z M 100,132 C 48,132 20,110 20,75 C 20,40 48,18 100,18 C 152,18 180,40 180,75 C 180,110 152,132 100,132 Z" fill="#0A51A1" />
+                            <path d="M 60,30 C 42,60 38,72 38,82 C 38,96 48,106 60,106 C 72,106 82,96 82,82 C 82,72 78,60 60,30 Z" fill="#0284C7" />
+                            <path d="M 118,20 L 88,68 L 108,68 L 94,110 L 132,54 L 110,54 Z" fill="#F59E0B" />
+                            <path d="M 140,35 C 120,62 125,78 140,100 C 155,78 160,62 140,35 Z" fill="#EA580C" />
+                        </g>
+                    </svg>
+                    <div>
+                        <h2 class="title-main m-0" style="font-size: 1.6rem;">CALCULADORA UNIR S.A.</h2>
+                        <span class="text-secondary fw-bold" style="font-size: 1rem;">Usuario Activo: <strong id="usuarioConectado" class="text-dark"></strong></span>
+                    </div>
+                </div>
+                <button class="btn btn-outline-danger btn-lg fw-bold px-4" onclick="cerrarSesion()">Salir</button>
+            </div>
+
+            <div class="row g-4">
+                <!-- Formulario Izquierdo -->
+                <div class="col-md-6 border-end pe-md-4">
+                    <h4 class="fw-bold text-secondary mb-3">DATOS DE LA FACTURA</h4>
+
+                    <!-- Nombre del Titular -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label m-0">Nombre del Titular:</label>
+                            <span id="cntNombre" class="counter-badge">14/40</span>
+                        </div>
+                        <input type="text" id="txtNombre" class="form-control" value="Patricia Terán" maxlength="40"
+                               placeholder="Ej. Patricia Terán" oninput="validarSoloLetras(this); actualizarContador(this, 'cntNombre');">
+                    </div>
+
+                    <!-- Dirección -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label m-0">Dirección del Predio:</label>
+                            <span id="cntDireccion" class="counter-badge">15/50</span>
+                        </div>
+                        <input type="text" id="txtDireccion" class="form-control" value="Calle 45 # 12-34" maxlength="50"
+                               placeholder="Ej. Calle 45 # 12-34" oninput="actualizarContador(this, 'cntDireccion');">
+                    </div>
+
+                    <!-- Estrato -->
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Estrato Socioeconómico:</label>
+                        <select id="cmbEstrato" class="form-select">
+                            <option value="1">Estrato 1 (Bajo-Bajo)</option>
+                            <option value="2">Estrato 2 (Bajo)</option>
+                            <option value="3" selected>Estrato 3 (Medio-Bajo)</option>
+                            <option value="4">Estrato 4 (Medio)</option>
+                            <option value="5">Estrato 5 (Medio-Alto)</option>
+                            <option value="6">Estrato 6 (Alto)</option>
+                        </select>
+                    </div>
+
+                    <!-- Tarjetas de Selección de Servicio -->
+                    <div class="mb-3">
+                        <label class="form-label mb-2">Selecciona el servicio público a calcular:</label>
+                        <div class="service-card-group">
+                            <div class="service-card selected" id="cardAgua" data-service="Agua" onclick="seleccionarServicioCard('Agua')">
+                                <span class="icon">💧</span>
+                                <span class="title">Agua</span>
+                                <span class="price">$730 / m³</span>
+                            </div>
+                            <div class="service-card" id="cardEnergia" data-service="Energia" onclick="seleccionarServicioCard('Energia')">
+                                <span class="icon">⚡</span>
+                                <span class="title">Energía</span>
+                                <span class="price">$536 / kWh</span>
+                            </div>
+                            <div class="service-card" id="cardGas" data-service="Gas" onclick="seleccionarServicioCard('Gas')">
+                                <span class="icon">🔥</span>
+                                <span class="title">Gas</span>
+                                <span class="price">$710 / Gm</span>
+                            </div>
+                        </div>
+                        <input type="hidden" id="hdnServicio" value="Agua">
+                    </div>
+
+                    <!-- Campo Referencia Alfanumérico con Sanitización XSS -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label m-0">Referencia del Medidor:</label>
+                            <span id="cntReferencia" class="counter-badge">8/15</span>
+                        </div>
+                        <input type="text" id="txtReferencia" class="form-control" value="AG-102938" maxlength="15"
+                               placeholder="Ej. AG-102938 o 45678B" oninput="sanitizarAlfanumerico(this); actualizarContador(this, 'cntReferencia');">
+                        <div class="field-help-text">Ingrese letras, números o guiones (Máx. 15 caracteres).</div>
+                    </div>
+
+                    <!-- Consumo -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label m-0">Consumo:</label>
+                            <span id="cntConsumo" class="counter-badge">2/6</span>
+                        </div>
+                        <input type="text" id="txtConsumo" class="form-control" value="56" maxlength="6"
+                               placeholder="Ej. 56 (Mayor a 0)" oninput="validarSoloNumeros(this); actualizarContador(this, 'cntConsumo');">
+                    </div>
+
+                    <!-- Banner de Errores Específicos -->
+                    <div id="alertaError" class="alert alert-danger py-3 fw-bold fs-5 d-none mb-3 border-0 shadow-sm" role="alert"></div>
+
+                    <!-- Botones Principales -->
+                    <div class="d-flex gap-2 flex-wrap mb-2">
+                        <button class="btn btn-main-action" onclick="generarReporte()">Calcular / Generar</button>
+                        <button class="btn btn-save-action" onclick="guardarFactura()">Guardar</button>
+                        <button class="btn btn-secondary-action" onclick="cargarRegistros()">Cargar</button>
+                        <button class="btn btn-secondary-action" onclick="modificarUltimo()">Modificar</button>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Factura y Consulta -->
+                <div class="col-md-6 ps-md-4">
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Selecciona qué deseas consultar:</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="rdoConsulta" id="cAlfabetico" value="Alfabetico" checked onchange="actualizarTablaVista()">
+                                <label class="form-check-label fw-bold fs-5" for="cAlfabetico">Alfabético</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="rdoConsulta" id="cNombre" value="Nombre" onchange="actualizarTablaVista()">
+                                <label class="form-check-label fw-bold fs-5" for="cNombre">Nombre</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="rdoConsulta" id="cConsumo" value="Consumo" onchange="actualizarTablaVista()">
+                                <label class="form-check-label fw-bold fs-5" for="cConsumo">Consumo</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTENEDOR DE FACTURA -->
+                    <div id="contenedorTablaFactura" style="display:none;">
+                        <div class="factura-card mb-3">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                                <span class="fw-bold fs-4 text-primary" style="color: var(--unir-blue) !important;">UNIR S.A.</span>
+                                <h5 class="fw-bold m-0 text-end" style="color: var(--unir-blue);">FACTURA DE SERVICIOS PÚBLICOS</h5>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle text-center mb-0 table-custom">
+                                    <thead>
+                                        <tr>
+                                            <th>Titular / Dirección</th>
+                                            <th>Servicio</th>
+                                            <th>Ref / Est</th>
+                                            <th>Consumo</th>
+                                            <th>Total Pagar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cuerpoTabla" class="fw-bold">
+                                        <tr><td colspan="5" class="text-muted py-3">Presione "Cargar" para consultar.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Exportación Completa: PDF y EXCEL -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span id="lblContador" class="badge bg-secondary fs-5 px-3 py-2">0 / 10</span>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-danger btn-lg fw-bold" onclick="exportarPDF()">📄 Descargar PDF</button>
+                                <button class="btn btn-outline-success btn-lg fw-bold" onclick="exportarExcel()">📊 Descargar Excel (.xlsx)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="mensajeEstadoConsulta" class="text-muted text-center py-5 border rounded-3 bg-light fs-5">
+                        <em class="fw-bold">Presione <strong>"Cargar"</strong> o <strong>"Calcular / Generar"</strong> para visualizar las facturas en pantalla.</em>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end text-muted mt-5 border-top pt-2 fs-6">
+                2020 company - UNIR S.A.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- VENTANA MODAL EMERGENTE -->
+    <div class="modal fade" id="modalResultado" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-light py-3">
+                    <h4 class="fw-bold text-dark m-0">Mensaje del Sistema</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <p class="text-muted fw-bold fs-4 mb-1">EL RESULTADO ES:</p>
+                    <h1 id="lblResultadoModal" class="fw-bold text-success display-5">$0</h1>
+                </div>
+                <div class="modal-footer justify-content-center py-2 bg-light">
+                    <button type="button" class="btn btn-main-action px-5 fs-4" data-bs-dismiss="modal">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- PROGRAMACIÓN ORIENTADA A OBJETOS (POO EN JAVASCRIPT) -->
+    <script>
+            class ServicioPublico {
+                constructor(nombre, referencia, consumo) {
+                    if (this.constructor === ServicioPublico) {
+                        throw new Error("No se puede instanciar la clase abstracta.");
+                    }
+                    this._nombre = nombre;
+                    this._referencia = referencia;
+                    this._consumo = consumo;
+                }
+
+                get nombre() { return this._nombre; }
+                get referencia() { return this._referencia; }
+                get consumo() { return this._consumo; }
+
+                calcularTotal() {
+                    throw new Error("Método abstracto debe ser implementado.");
+                }
+            }
+
+            class ServicioAgua extends ServicioPublico {
+                get tarifa() { return 730; }
+                calcularTotal() { return this.consumo * this.tarifa; }
+            }
+
+            class ServicioEnergia extends ServicioPublico {
+                get tarifa() { return 536; }
+                calcularTotal() { return this.consumo * this.tarifa; }
+            }
+
+            class ServicioGas extends ServicioPublico {
+                get tarifa() { return 710; }
+                calcularTotal() { return this.consumo * this.tarifa; }
+            }
+
+            let listaFacturas = [];
+            const MAX_REGISTROS = 10;
+
+            function actualizarContador(elem, targetId) {
+                const max = elem.getAttribute('maxlength') || '20';
+                document.getElementById(targetId).innerText = `${elem.value.length}/${max}`;
+            }
+
+            function seleccionarServicioCard(tipo) {
+                document.querySelectorAll('.service-card').forEach(card => card.classList.remove('selected'));
+                if (tipo === 'Energia') {
+                    document.getElementById('cardEnergia').classList.add('selected');
+                } else if (tipo === 'Gas') {
+                    document.getElementById('cardGas').classList.add('selected');
+                } else {
+                    document.getElementById('cardAgua').classList.add('selected');
+                }
+                document.getElementById('hdnServicio').value = tipo;
+            }
+
+            function validarSoloLetras(input) {
+                input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+            }
+
+            // SANITIZACIÓN ALFANUMÉRICA Y PREVENCIÓN DE INYECCIÓN / XSS
+            function sanitizarAlfanumerico(input) {
+                // Bloquea explícitamente símbolos peligrosos (<, >, ', ", /, \)
+                input.value = input.value.replace(/[^a-zA-Z0-9\-\s]/g, '');
+            }
+
+            function validarSoloNumeros(input) {
+                input.value = input.value.replace(/\D/g, '');
+            }
+
+            function mostrarAlerta(msj) {
+                const div = document.getElementById('alertaError');
+                div.innerText = msj;
+                div.classList.remove('d-none');
+            }
+
+            function ocultarAlerta() {
+                document.getElementById('alertaError').classList.add('d-none');
+            }
+
+            function iniciarSesion(e) {
+                e.preventDefault();
+                const usr = document.getElementById('loginUsuario').value.trim();
+                if (usr) {
+                    document.getElementById('usuarioConectado').innerText = usr;
+                    document.getElementById('pantallaLogin').classList.add('d-none');
+                    document.getElementById('pantallaCalculadora').classList.remove('d-none');
+                }
+            }
+
+            function cerrarSesion() {
+                document.getElementById('pantallaCalculadora').classList.add('d-none');
+                document.getElementById('pantallaLogin').classList.remove('d-none');
+            }
+
+            function guardarFactura() {
+                ocultarAlerta();
+
+                const nombre = document.getElementById('txtNombre').value.trim();
+                const direccion = document.getElementById('txtDireccion').value.trim();
+                const estrato = document.getElementById('cmbEstrato').value;
+                const referencia = document.getElementById('txtReferencia').value.trim();
+                const consumoNum = parseInt(document.getElementById('txtConsumo').value.trim());
+                const tipoServicio = document.getElementById('hdnServicio').value;
+
+                if (!nombre || nombre.length < 3) {
+                    mostrarAlerta("Error en Nombre: Debe contener únicamente letras y un mínimo de 3 caracteres.");
+                    return;
+                }
+
+                if (!direccion || direccion.length < 5) {
+                    mostrarAlerta("Error en Dirección: Ingrese una dirección válida.");
+                    return;
+                }
+
+                if (!referencia || referencia.length < 2) {
+                    mostrarAlerta("Error en Referencia: Ingrese un código alfanumérico válido (mínimo 2 caracteres).");
+                    return;
+                }
+
+                if (isNaN(consumoNum) || consumoNum <= 0) {
+                    mostrarAlerta("Error en Consumo: Debe ser un número entero mayor a 0.");
+                    return;
+                }
+
+                if (listaFacturas.length >= MAX_REGISTROS) {
+                    mostrarAlerta("Límite alcanzado: Se ha superado el tope de 10 registros.");
+                    return;
+                }
+
+                let objServicio;
+                if (tipoServicio === "Energia") {
+                    objServicio = new ServicioEnergia(nombre, referencia, consumoNum);
+                } else if (tipoServicio === "Gas") {
+                    objServicio = new ServicioGas(nombre, referencia, consumoNum);
+                } else {
+                    objServicio = new ServicioAgua(nombre, referencia, consumoNum);
+                }
+
+                const totalPagar = objServicio.calcularTotal();
+
+                listaFacturas.push({
+                    nombre: nombre,
+                    direccion: direccion,
+                    estrato: estrato,
+                    servicio: tipoServicio,
+                    referencia: referencia,
+                    consumo: consumoNum,
+                    total: totalPagar
+                });
+
+                document.getElementById('lblResultadoModal').innerText = `$${totalPagar.toLocaleString('es-CO')}`;
+                const modal = new bootstrap.Modal(document.getElementById('modalResultado'));
+                modal.show();
+
+                actualizarTablaVista();
+            }
+
+            function cargarRegistros() {
+                document.getElementById('mensajeEstadoConsulta').style.display = 'none';
+                document.getElementById('contenedorTablaFactura').style.display = 'block';
+                actualizarTablaVista();
+            }
+
+            function modificarUltimo() {
+                if (listaFacturas.length === 0) {
+                    mostrarAlerta("Atención: No hay registros guardados para modificar.");
+                    return;
+                }
+                const ultimo = listaFacturas[listaFacturas.length - 1];
+                document.getElementById('txtNombre').value = ultimo.nombre;
+                document.getElementById('txtDireccion').value = ultimo.direccion;
+                document.getElementById('cmbEstrato').value = ultimo.estrato;
+                document.getElementById('txtReferencia').value = ultimo.referencia;
+                document.getElementById('txtConsumo').value = ultimo.consumo;
+                seleccionarServicioCard(ultimo.servicio);
+                actualizarContador(document.getElementById('txtNombre'), 'cntNombre');
+                actualizarContador(document.getElementById('txtDireccion'), 'cntDireccion');
+                actualizarContador(document.getElementById('txtReferencia'), 'cntReferencia');
+                actualizarContador(document.getElementById('txtConsumo'), 'cntConsumo');
+                ocultarAlerta();
+            }
+
+            function generarReporte() {
+                guardarFactura();
+                cargarRegistros();
+            }
+
+            function actualizarTablaVista() {
+                const tbody = document.getElementById('cuerpoTabla');
+                tbody.innerHTML = '';
+
+                if (listaFacturas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-3">Sin registros aún.</td></tr>';
+                    document.getElementById('lblContador').innerText = `0 / ${MAX_REGISTROS}`;
+                    return;
+                }
+
+                const criterio = document.querySelector('input[name="rdoConsulta"]:checked').value;
+                let datos = [...listaFacturas];
+
+                if (criterio === "Alfabetico" || criterio === "Nombre") {
+                    datos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                } else if (criterio === "Consumo") {
+                    datos.sort((a, b) => b.consumo - a.consumo);
+                }
+
+                datos.forEach(f => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                            <td class="text-start">
+                                <div class="fw-bold">${f.nombre}</div>
+                                <small class="text-secondary">${f.direccion}</small>
+                            </td>
+                            <td class="fw-bold">${f.servicio}</td>
+                            <td>Ref: ${f.referencia}<br><span class="badge bg-light text-dark border">Estrato ${f.estrato}</span></td>
+                            <td class="fw-bold fs-5">${f.consumo}</td>
+                            <td class="fw-bold text-success fs-4">$${f.total.toLocaleString('es-CO')}</td>
+                        `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('lblContador').innerText = `${listaFacturas.length} / ${MAX_REGISTROS}`;
+            }
+
+            // EXPORTACIÓN A PDF VECTORIAL DIRECTO CON jsPDF + AUTO-TABLE
+            function exportarPDF() {
+                if (listaFacturas.length === 0) return;
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+                doc.setFillColor(10, 81, 161);
+                doc.rect(0, 0, 210, 26, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(16);
+                doc.setFont("helvetica", "bold");
+                doc.text("UNIR S.A. - SERVICIOS PÚBLICOS DOMICILIARIOS", 14, 16);
+
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(13);
+                doc.text("Comprobante Oficial de Facturación", 14, 34);
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Fecha de impresión: ${new Date().toLocaleDateString('es-CO')} - ${new Date().toLocaleTimeString('es-CO')}`, 14, 40);
+
+                const columnas = ["Titular", "Dirección", "Servicio", "Ref / Estrato", "Consumo", "Total Pagar"];
+                const filas = listaFacturas.map(f => [
+                    f.nombre,
+                    f.direccion,
+                    f.servicio,
+                    `Ref: ${f.referencia}\nEstrato ${f.estrato}`,
+                    f.consumo,
+                    `$${f.total.toLocaleString('es-CO')}`
+                ]);
+
+                doc.autoTable({
+                    startY: 45,
+                    head: [columnas],
+                    body: filas,
+                    theme: 'grid',
+                    headStyles: { fillColor: [10, 81, 161], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+                    bodyStyles: { fontSize: 9, textColor: 30 },
+                    alternateRowStyles: { fillColor: [244, 247, 249] },
+                    margin: { left: 14, right: 14 }
+                });
+
+                doc.save('Facturas_UNIR_SA.pdf');
+            }
+
+            // EXPORTACIÓN A HOJA DE CÁLCULO EXCEL (.xlsx) CON SheetJS
+            function exportarExcel() {
+                if (listaFacturas.length === 0) return;
+
+                const datosExcel = listaFacturas.map(f => ({
+                    "Titular": f.nombre,
+                    "Dirección": f.direccion,
+                    "Estrato": f.estrato,
+                    "Servicio Público": f.servicio,
+                    "Referencia": f.referencia,
+                    "Consumo": f.consumo,
+                    "Total Pagar ($)": f.total
+                }));
+
+                const hoja = XLSX.utils.json_to_sheet(datosExcel);
+                const libro = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(libro, hoja, "Facturas UNIR");
+
+                XLSX.writeFile(libro, 'Facturas_UNIR_SA.xlsx');
+            }
+    </script>
+
+</body>
+</html>

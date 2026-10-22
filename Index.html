@@ -1,0 +1,13 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
+namespace UNIR_Facturacion.Pages
+{
+    public class IndexModel : PageModel
+    {
+        public void OnGet()
+        {
+
+        }
+    }
+}
